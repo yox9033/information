@@ -19,7 +19,7 @@ file_log_handler.setFormatter(formatter)
 logging.getLogger().addHandler(file_log_handler)
 
 db = SQLAlchemy()
-
+redis_store = None  #type: redis.StrictRedis
 def create_app(config_name):
     # 获取配置文件的key
     config_class = config_map.get(config_name)
@@ -27,11 +27,14 @@ def create_app(config_name):
     # 加载配置文件DevelopementConfig,ProdutionConfig
     app.config.from_object(config_class)
     # 创建redis对象(用来存储验证码,图片验证码和短信验证码)
-    redis_store = redis.StrictRedis(host=config_class.REDIS_HOST, port=config_class.REDIS_PORT)
+    # 使redis_store对象变为全局变量
+    global redis_store
+    # redis数据库存储的值为byte
+    redis_store = redis.StrictRedis(host=config_class.REDIS_HOST, port=config_class.REDIS_PORT,decode_responses=True)
     # 初始化
     db.init_app(app)
     # 开启CSRF保护
-    CSRFProtect(app)
+    # CSRFProtect(app)
     # 开启session
     Session(app)
 
@@ -40,8 +43,8 @@ def create_app(config_name):
     from info.index import index_blue
     app.register_blueprint(index_blue)
     # 登录注册
-    from info.login import login_bule
-    app.register_blueprint(login_bule)
+    from info.passport import passport_bule
+    app.register_blueprint(passport_bule)
 
 
     return app
