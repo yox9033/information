@@ -10,6 +10,39 @@ import re
 import random
 
 
+@passport_bule.route("/logout", methods=["GET", "POST"])
+def logout():
+    """退出"""
+    session.pop("user.id", None)
+    session.pop("nick_name", None)
+    session.pop("mobile", None)
+
+    return jsonify(errno=RET.OK, errmsg="ok")
+
+
+@passport_bule.route("/login", methods=["GET", "POST"])
+def login():
+    """登录"""
+    # 1.获取参数
+    mobile = request.json.get("mobile")
+    password = request.json.get("password")
+    # 2.查询数据库表校验,校验密码/账户
+    try:
+        user = User.query.filter(User.mobile == mobile).first()
+    except Exception as e:
+        current_app.logger.error(e)
+    if not user:
+        return jsonify(errno=RET.NODATA, errmsg="账户不存在,请注册")
+    if not user.check_password(password):
+        return jsonify(errno=RET.DATAERR, errmsg="请输入正确的密码")
+    session["user.id"] = user.id
+    session["nick_name"] = user.nick_name
+    session["mobile"] = user.mobile
+    user.last_login = datetime.now()
+    db.session.commit()
+    return jsonify(errno=RET.OK, errmsg="登陆成功")
+
+
 @passport_bule.route("/register", methods=["GET", "POST"])
 def register():
     """注册逻辑
@@ -24,13 +57,13 @@ def register():
     mobile = request.json.get("mobile")
     smscode = request.json.get("smscode")
     password = request.json.get("password")
-    print("前端发送的验证码：" + smscode)
+    # print("前端发送的验证码：" + smscode)
     if not all([mobile, smscode, password]):
         return jsonify(errno=RET.PARAMERR, errmsg="参数不全")
     # 2.查询redis从短信验证码
     try:
         real_sms_code = redis_store.get("SMS_code" + mobile)
-        print("redis存储的验证码" + real_sms_code)
+        # print("redis存储的验证码" + real_sms_code)
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DATAERR, errmsg="获取短信验证码失败")

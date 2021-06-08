@@ -2,7 +2,7 @@ from flask import Flask
 from config import Config, DevelopConfig, ProductionConfig, config_map
 import redis
 from flask_sqlalchemy import SQLAlchemy
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect,generate_csrf
 from flask_session import Session
 import logging
 from logging.handlers import RotatingFileHandler
@@ -34,9 +34,16 @@ def create_app(config_name):
     # 初始化
     db.init_app(app)
     # 开启CSRF保护
-    # CSRFProtect(app)
+    CSRFProtect(app)
     # 开启session
     Session(app)
+
+    @app.after_request
+    def after_request(response):
+        """csrf_token校验"""
+        csrf_token = generate_csrf()
+        response.set_cookie("csrf_token",csrf_token)
+        return response
 
 
     # 首页
