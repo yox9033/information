@@ -1,4 +1,4 @@
-from info.models import User
+from info.models import User,News
 from . import index_blue
 from flask import render_template, current_app,session
 import logging
@@ -12,8 +12,22 @@ def index():
     # 2.通过id获取用户信息
     if user_id:
         user = User.query.get(user_id)
+    # 点击排行数据展示
+    new_list = None
+    try:
+       new_list = News.query.order_by(News.clicks.desc()).limit(10)
+    except Exception as e:
+        current_app.logger.error(e)
+    click_news_list = []
+    for news in new_list:
+        click_news_list.append(news.to_dict()) if new_list else None
+
+
+
+
     data = {
-        "user_info":user.to_dict() if user else None
+        "user_info":user.to_dict() if user else None,
+        "click_news_list": click_news_list
     }
 
     return render_template("news/index.html",data = data)

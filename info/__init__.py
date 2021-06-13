@@ -2,7 +2,7 @@ from flask import Flask
 from config import Config, DevelopConfig, ProductionConfig, config_map
 import redis
 from flask_sqlalchemy import SQLAlchemy
-from flask_wtf.csrf import CSRFProtect,generate_csrf
+from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_session import Session
 import logging
 from logging.handlers import RotatingFileHandler
@@ -19,7 +19,9 @@ file_log_handler.setFormatter(formatter)
 logging.getLogger().addHandler(file_log_handler)
 
 db = SQLAlchemy()
-redis_store = None  #type: redis.StrictRedis
+redis_store = None  # type: redis.StrictRedis
+
+
 def create_app(config_name):
     # 获取配置文件的key
     config_class = config_map.get(config_name)
@@ -30,7 +32,7 @@ def create_app(config_name):
     # 使redis_store对象变为全局变量
     global redis_store
     # redis数据库存储的值为byte
-    redis_store = redis.StrictRedis(host=config_class.REDIS_HOST, port=config_class.REDIS_PORT,decode_responses=True)
+    redis_store = redis.StrictRedis(host=config_class.REDIS_HOST, port=config_class.REDIS_PORT, decode_responses=True)
     # 初始化
     db.init_app(app)
     # 开启CSRF保护
@@ -42,16 +44,19 @@ def create_app(config_name):
     def after_request(response):
         """csrf_token校验"""
         csrf_token = generate_csrf()
-        response.set_cookie("csrf_token",csrf_token)
+        response.set_cookie("csrf_token", csrf_token)
         return response
 
+    # 注册自定义过滤器
+    from info.utils.common import do_index_class
+    app.add_template_filter(do_index_class, "index_class")
 
     # 首页
+
     from info.index import index_blue
     app.register_blueprint(index_blue)
     # 登录注册
     from info.passport import passport_bule
     app.register_blueprint(passport_bule)
-
 
     return app
